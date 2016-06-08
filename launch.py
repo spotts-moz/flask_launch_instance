@@ -160,10 +160,10 @@ def createInstance():
         # reservation will hold the return, which we can ask for .instances and see what instances it made.                                 
         reservation = conn.run_instances(
             'ami-fce3c696',
-            key_name='Spotts_Flask_Test',
+            key_name=my_keypair_name,
             instance_type='t2.micro',
             user_data=readFileToVar(my_user_data),
-            security_groups=['Flask_Test']
+            security_groups=[my_security_group_name]
             )
             
         return reservation  
