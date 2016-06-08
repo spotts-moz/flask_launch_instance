@@ -1,0 +1,23 @@
+#cloud-config
+#
+# Updating our packages
+repo_update: true
+repo_upgrade: all
+#
+packages:
+- puppet
+- git
+- python-virtualenv
+
+# Run commands to pull down puppet config and apply puppett
+runcmd:
+- [sh, -c, 'mv /etc/puppet /etc/puppet_bak']
+- [sh, -c, 'git clone https://github.com/spotts-moz/flask_config /etc/puppet/']
+- [sh, -c, 'puppet apply /etc/puppet/manifests/init.pp']
+#
+# TODO:
+# - Add more checks around command completion and success ( no faith based runs ) 
+# - Sending mail needs to be worked out on data run completion or error
+# - Evaluate deployment tools other than straight to AWS commands and user-data
+# - Add logging facilities and possibly web hook triggers
+#
