@@ -61,8 +61,9 @@ additional_ssh_ips = [ "10.0.0.0/8", ]
 #                                                                                                           # 
 #############################################################################################################
 
-my_keypair_file = my_key_save_dir + '/' +  my_keypair_name + '.pem'
+
 my_key_save_dir = os.path.abspath(os.path.dirname(sys.argv[0])) + 'key'
+my_keypair_file = my_key_save_dir + '/' +  my_keypair_name + '.pem'
 my_user_data = os.path.abspath(os.path.dirname(sys.argv[0])) + "/user_data"
 
 # TODO Access keys live and/or retrieved from somewhere other than boto.config possibly in secure data store
