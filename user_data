@@ -7,7 +7,6 @@ repo_upgrade: all
 packages:
 - puppet
 - git
-- python-virtualenv
 
 # Run commands to pull down puppet config and apply puppett
 runcmd:
