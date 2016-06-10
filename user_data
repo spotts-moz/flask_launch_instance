@@ -12,7 +12,6 @@ packages:
 runcmd:
 - [sh, -c, 'mv /etc/puppet /etc/puppet_bak']
 - [sh, -c, 'git clone https://github.com/spotts-moz/flask_config /etc/puppet/']
-- [sh, -c, 'git clone https://github.com/spotts-moz/flask_app /etc/puppet/']
 - [sh, -c, 'puppet apply /etc/puppet/manifests/init.pp']
 #
 # TODO:
