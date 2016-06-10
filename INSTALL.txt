@@ -1,0 +1,76 @@
+Installation:
+    NOTE: You may need administrative privileges for this installation!
+    REQUIREMENTS: git, python 2.7, python boto module, a basic knowledge of AWS
+
+
+  1) Pull down the files for launching the instance from the command line.
+        - Clone the flask_launch_instance repo from github https://github.com/spotts-moz/flask_launch_instance, you can use wget, git or the github application. (Installation of these tools may be necessary)
+      E.X.: git clone https://github.com/spotts-moz/flask_launch_instance <dir>
+
+  2) Make a default boto.cfg file that holds your AWS credentials.
+         !!!!!IMPORTANT!!!! Please ensure your AWS credentials hold authority to create IAM roles, security groups and instances
+       - Make a file in /etc called boto.cfg
+         -- There are other locations and schemes, including instructions for making a Windows file here:
+             http://boto.cloudhackers.com/en/latest/boto_config_tut.html
+             An example config looks like:
+                [Credentials]
+                aws_access_key_id = <your default access key>
+                aws_secret_access_key = <your default secret key>
+
+ 3) Running the launch
+       - If using Linux with python 2.7 properly in your PATH, launch can be from inside the repo directory.
+          -- EX: <dr>/launch.sh
+          -- If your path is incorrect, not set, or using Windows, you can simply provide the full path to your python 2.7 installation like so:
+           '/usr/sbin/python launch.py'  or 'C:\Python27\python.exe launch.py'
+
+       - This will create a new security group: "Flask_Tests" (which gives open access to ports 443, 80, and SSH acess to the ips configured in the script) and a new SSH keypair
+         -- keypair: "Flask_keys" and save the key.pem in a "key" directory in same location as the launch.py file on disk and creates a new AWS instance using the user data from the file 'user_data'.
+           (Which should stay in the directory with launch.py)
+
+      - OUTPUT:
+        The output of this process should look like so:
+
+            Instance is Starting
+            Created instance ID: <INSTANCE_ID>
+            Instance Private IP Address: <PRIVATE_IP>
+            Instance Public IP Address: <PUBLIC_IP>
+     
+     - After a few minutes the result can be viewed at http://<PUBLIC_IP>/        
+
+
+  4) Explanation of the process on the created instance.
+     - The user data file tells AWS to install puppet(So we can further manage packages) and git, moves the default puppet config out of the way then pulls down the flask_config repo:
+      https://github.com/spotts-moz/flask_config
+
+     - The flask_config repo gives puppet the configuration files/modules/manifests it needs to deploy our server. (/etc/puppet)
+
+     - There are several modules in the puppet config that help the rest of the process and can be browsed in the git repo.
+
+
+       -- The Puppet Setup:
+
+          --- Puppet installs and configures and sets proper permissions for required files, these packages:
+            nginx   
+            python  (Ensuring version, pip and flask are set to go)
+            uwsgi
+            vcsrepo (Used for latest versions)
+            git     (Making sure it's up to date)
+            Then we clone both our flask app:
+                     https://github.com/spotts-moz/flask_app
+            vim
+    - The flask app and puppet config are updated hourly by default so if changes are made the app in https://github.com/spotts-moz/flask_app/app.py or  https://github.com/spotts-moz/flask_config they will auomatically show up no later than on hour from when they were submitted       
+            
+Example command run:
+
+git clone https://github.com/spotts-moz/flask_launch_instance /launch
+cd /launch
+sudo pip install boto
+echo "[Credentials]" > ~/.boto
+echo "aws_access_key_id = 123456789" >> ~/.boto
+echo "aws_secret_access_key = supersecret" >> ~/.boto
+python launch.py
+
+
+
+    NOTE:  Logging in to the Instance via SSH expects not only your key (saved as noted above), 
+              but needs you to login as user "ubuntu".
