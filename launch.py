@@ -46,26 +46,27 @@ import collections
 #############################################################################################################
 
 # TODO make user_data able to be pulled from multiple sources
-#       You can replace the  security group, keypair names if desired, and keypair storage location. (Be aware of OS pathing!)
+#       You can replace the user data, security group and keypair names if desired. (Be aware of OS pathing!)
+my_user_data = os.path.abspath(os.path.dirname(sys.argv[0])) + "/user_data"
 my_security_group_name = 'Flask_Tests'
-my_keypair_name = 'Flask_key'
-my_key_save_dir = 'key'
-
+my_keypair_name = 'Flask_keys'
+my_key_save_dir = os.path.abspath(os.path.dirname(sys.argv[0])) + '/key'
+# The key store is in the root
+my_keypair_file = my_key_save_dir  + '/' + my_keypair_name + '.pem'
 
 
 #  An array for any ip addresses you want to have SSH access via a newly created security group to the instance
 #   you must add the address to the following array as a string. 
 #   The default example assumption is made that you are in a 10.*.*.* ip range and it is included.
 #   This will NOT affect groups that have already been created
-additional_ssh_ips = [ "10.0.0.0/8", ]
+additional_ssh_ips = [ "10.0.0.0/8", "0.0.0.0/0",]
 
 #############################################################################################################
 # End Configureation parameters                                                                             # 
 #                                                                                                           # 
 #############################################################################################################
 
-my_keypair_file = my_key_save_dir + '/' +  my_keypair_name + '.pem'
-my_user_data = os.path.abspath(os.path.dirname(sys.argv[0])) + "/user_data"
+
 
 # TODO Access keys live and/or retrieved from somewhere other than boto.config possibly in secure data store
 access_key_id     = boto.config.get_value('credentials', 'aws_access_key_id')
@@ -126,11 +127,11 @@ def createInstance():
                 try:
                     if not os.path.isfile(my_keypair_file):
                                        
+                        if not os.path.exists(my_key_save_dir):
+                            os.makedirs(my_key_save_dir)               
                         # AWS will store the public key but the private key is
                         # generated and returned and needs to be stored locally.
                         # We can't overwrite the file if one exists so saving the new file will be skipped
-                        if not os.path.exists(my_key_save_dir):
-                            os.makedirs(my_key_save_dir)
                         key.save(my_key_save_dir)
                 
                 except Exception as e:
@@ -217,3 +218,7 @@ if __name__=="__main__":
     # Use instance id and watch its status.         
     instanceCreationStatus(new_instance.instances[0], "update", "state", "running")             
     
+    
+    
+ 
+
