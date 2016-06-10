@@ -8,7 +8,7 @@ packages:
 - puppet
 - git
 
-# Run commands to pull down puppet config and apply puppett
+# Run commands to pull down puppet config and apply puppet
 runcmd:
 - [sh, -c, 'mv /etc/puppet /etc/puppet_bak']
 - [sh, -c, 'git clone https://github.com/spotts-moz/flask_config /etc/puppet/']
