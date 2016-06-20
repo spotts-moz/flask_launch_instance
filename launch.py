@@ -12,7 +12,7 @@
 #       - This is a script written using Python 2.7 from the default install dir - Please note the initial shebang, 
 #           and the path variables may need to be adjusted to suit your installation/OS!!!
 #        
-#        - Requires the boto python module to be installed. It can be installed via "pip install boto"
+#       - Requires the boto python module to be installed. It can be installed via "pip install boto"
 #
 #       - If logging in via ssh is desired, you will need to use a public/private keypair from AWS. If you are not coming from a 10.0.0.0/8 add your public ip address below 
 #               ( If you need to find your external ip google "what is my IP" )
@@ -20,8 +20,6 @@
 #   TODO:
 #       - Output errors to log
 #       - Output to email, possibly a web hook
-#       - Setup script to take variables through an ini file or the command line options.
-#       - Create a more robust script that allows choosing of regions, with other AMIs etc
 #       - Retrieve AWS credentials from a secure store  ( may also be handled outside this script with configuration management such as puppet/hiera)
 #       - Re factor code out into more reasonable/smaller defs for readability, maintainability, and modularity  
 #       - Add security group rule evaluation and revoke. 
@@ -39,14 +37,15 @@ import time
 import os
 import sys
 import collections
+import argparse
+
 
 #############################################################################################################
 # Configureation parameters                                                                                 # 
 #                                                                                                           # 
 #############################################################################################################
 
-# TODO make user_data able to be pulled from multiple sources
-#       You can replace the  security group, keypair names if desired, and keypair storage location. (Be aware of OS pathing!)
+#   You can replace the  security group, keypair names if desired, and keypair storage location. (Be aware of OS pathing!)
 my_security_group_name = 'Flask_Tests'
 my_keypair_name = 'Flask_key'
 
@@ -62,9 +61,10 @@ additional_ssh_ips = [ "10.0.0.0/8", ]
 #############################################################################################################
 
 
-my_key_save_dir = os.path.abspath(os.path.dirname(sys.argv[0])) + '/' + 'key'
-my_keypair_file = my_key_save_dir + '/' +  my_keypair_name + '.pem'
-my_user_data = os.path.abspath(os.path.dirname(sys.argv[0])) + "/user_data"
+my_key_save_dir    = os.path.abspath(os.path.dirname(sys.argv[0])) + '/' + 'key'
+my_keypair_file    = my_key_save_dir + '/' +  my_keypair_name + '.pem'
+my_user_data       = os.path.abspath(os.path.dirname(sys.argv[0])) + "/user_data"
+my_aws_region_list = ['us-east-1', 'us-west-1', 'us-west-2']
 
 # TODO Access keys live and/or retrieved from somewhere other than boto.config possibly in secure data store
 access_key_id     = boto.config.get_value('credentials', 'aws_access_key_id')
@@ -88,7 +88,7 @@ def readFileToVar(file):
         if os.path.isfile(file):
             with open(file, "r") as f:
                 user_data_file = f.read()
-                
+
             return user_data_file
             
         else:
@@ -105,7 +105,7 @@ def createInstance():
     # TODO: have function accept reservation values as variables
     # Creating EC2 instance in us-east-1, where it is cheap
     try:
-        conn = boto.ec2.connect_to_region("us-east-1",
+        conn = boto.ec2.connect_to_region(str(args.awsregion),
                                             aws_access_key_id = access_key_id,
                                             aws_secret_access_key = secret_access_key)
                                             
@@ -162,17 +162,17 @@ def createInstance():
 
         # reservation will hold the return, which we can ask for .instances and see what instances it made.                                 
         reservation = conn.run_instances(
-            'ami-fce3c696',
+            args.ami,
             key_name=my_keypair_name,
-            instance_type='t2.micro',
+            instance_type=args.instancetype,
             user_data=readFileToVar(my_user_data),
             security_groups=[my_security_group_name]
             )
-            
+
         return reservation  
         
     except boto.exception.BotoServerError:
-        print "Instance creation error"
+        print "Instance creation error - Check that regions, AMIs, and machine types are proper."
         sys.exit(2)
         
         
@@ -188,7 +188,6 @@ def tester(test_type):
 
 
 
-#  Broken for now. In the aws init.py 'getattr' might be something I need.
 def instanceCreationStatus(inst, update_method, attr_name, attr_value):
     while True:
         try:
@@ -209,9 +208,115 @@ def instanceCreationStatus(inst, update_method, attr_name, attr_value):
         except:
             print "Error while waiting, Retrying"
             time.sleep(15)
+
+            
+            
+        
             
 if __name__=="__main__":            
-    new_instance = createInstance()
+
+
+    try:
+        #   Initialize arg parser
+        parser = argparse.ArgumentParser(description="This tool reads json data to calculate percentile points.")
+
+        #   Setting up valid CLI args
+        #  Breaking out the user data opens up this launch script to configure launched instances any way you need.
+        parser.add_argument("-ud", "--userdata",
+                        help="Specifies a user data file instead of the default",
+                        action="store", default=False)
+
+                        
+        #  Breaking out the key store dir allows us to place new keys in a shared store.
+        parser.add_argument("-kd", "--keydir",
+                        help="Specifies a key directory instead of the default",
+                        action="store", default=False)
+                        
+        #  Breaking out the security group name to open options
+        parser.add_argument("-sg", "--securitygroup",
+                        help="Specifies a security group name beyond the default",
+                        action="store", default=False)
+
+        #  Breaking out the key pair name to open options
+        parser.add_argument("-kp", "--keypair",
+                        help="Specifies a key pair name beyond the default",
+                        action="store", default=False)
+                        
+        #  Breaking out the key pair name to open options
+        parser.add_argument("-ar", "--awsregion",
+                        help="Specifies the AWS region you want to create an instance in. Default: 'us-east-1'  Ensure your AMI is available for that region!",
+                        action="store", default='us-east-1')
+
+        #  Breaking out the key pair name to open options
+        parser.add_argument("-am", "--ami",
+                        help="Specifies AMI you want to use create an instance. Default: 'ami-fce3c696'  Ensure your AMI is available for that region!",
+                        action="store", default='ami-fce3c696')                     
+                        
+        #  Breaking out the key pair name to open options
+        parser.add_argument("-it", "--instancetype",
+                        help="Specifies the instance type you want to spin up. Default: 't2.micro'  Ensure your instance type is available for that region!",
+                        action="store", default='t2.micro')                         
+                        
+                        
+        # Parse arguments
+        args = parser.parse_args()                        
+                        
+        if args.userdata and not os.path.isfile(args.userdata):
+            parser.error("No user data file specified to act on, or bad path.")
+            sys.exit(1)
             
-    # Use instance id and watch its status.         
-    instanceCreationStatus(new_instance.instances[0], "update", "state", "running")             
+        elif args.keydir and not os.path.isdir(args.keydir):
+            parser.error("No key dir specified to act on, or bad path.")
+            sys.exit(1)
+
+        elif args.securitygroup and not isinstance(args.securitygroup, str):
+            parser.error("No security group specified. Don't use the -sg flag if you want to use the default.")
+            sys.exit(1)
+
+        elif args.keypair and not isinstance(args.keypair, str):
+            parser.error("No key pair name specified. Don't use the -kp flag if you want to use the default.")
+            sys.exit(1)            
+
+        elif args.awsregion and not (isinstance(args.awsregion, str) and args.awsregion in my_aws_region_list):
+            parser.error("Invalid AWS Region specified. Current options:%s" % my_aws_region_list)
+            sys.exit(1)
+            
+        # NOTE: AMIs and Instances can have a built-in validation scheme like the regions above, following the same setup
+        #         or it coud be broken out into an ini.
+        elif args.ami and not isinstance(args.ami, str):
+            parser.error("Invalid AMI specified.")
+            sys.exit(1)
+
+        elif args.instancetype and not isinstance(args.instancetype, str):
+            parser.error("Invalid Instance type specified.")
+            sys.exit(1)         
+            
+        else:
+            try:
+                # Changing global vars if custom data is called
+                if args.userdata:
+                    my_user_data = str(args.userdata)
+                
+                if args.keydir:
+                    my_key_save_dir = str(args.keydir)
+                    
+                if args.securitygroup:
+                    my_security_group_name = str(args.securitygroup)
+
+                if args.keypair:
+                    my_keypair_name = str(args.keypair)
+                
+                new_instance = createInstance()
+            
+                # Use instance id and watch its status.         
+                instanceCreationStatus(new_instance.instances[0], "update", "state", "running")               
+
+                    
+                    
+            except Exception as e:
+                print "Error running options: %s" %  e
+                sys.exit(1)    
+                        
+    except Exception as e:
+        print "Error in argparsing: %s" %  e
+        sys.exit(1)
