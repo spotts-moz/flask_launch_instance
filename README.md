@@ -68,4 +68,4 @@
      
       - Outside of the scope of this exercise more focus would be paid to security. (using virtualenv, key pairs, secret stores, identity checking, etc)
       - The Launch script could be broken out into more functions and parts to allow more flexible changes.
-      - Variables from launch.py could be broken out into an ini, or be parsed from the command line as arguments.
+      - Variables from launch.py could be broken out into an ini.
