@@ -27,7 +27,7 @@
           - AWS login credentials capable of creating IAM roles, security groups, and EC2 instances
          
           - Python 2.7
-            - The boto module (If installing via pip, install pip then 'pip install boto')
+            - The boto module (If installing via pip, install pip then 'pip install boto' http://boto.cloudhackers.com/en/latest/getting_started.html )
              
            
       boto.cfg construction:
@@ -44,28 +44,34 @@
       - User pulls down the deployment repository from github
            (Files are run out of the directory the repository has been pulled down from, but variables can be changed in the script if desired)
           
-      - User populates the boto.cfg file with their own AWS credentials
+      - User populates the boto config file with their own AWS credentials
 
       - User Installs necessary packages, Python 2.7, and boto
      
       - User runs Launch.py from the command line and receives pertinent Instance data. (ID, Private IP, External Public IP)
-     
-      - Launch.py creates a security group, a keypair if needed and opens desired networks ports for communication
+          (Our pocket book is safe from accidental creation via a user prompt unless overridden by the '-f' force flag)
+      
+      - Launch.py creates a security group and a keypair if needed and opens the instance's desired networks ports for communication
+           (A custom security group and/or keypair may be substituted via the command line)
      
       - Launch.py launches an EC2 t2.micro instance with user_data included to AWS setting up our Ubuntu 14.04 AMI in US-EAST-1
+        (User input can substitute the instance type, user_data, AMI and region via commandline flags for flexibility but some changes may require changes to the build)
      
       - The user_data pre-loads the instance with Puppet and Git, and pulls down our repository to configure the server
           ( https://github.com/spotts-moz/flask_config )
      
-      - The instance uses puppet to install and run Nginx, Uwsgi, Git, and deploy our flask app(via Git) then creates a cron job
-          that runs puppet apply every hour enabling vcsrepo to update to the latest version of our flask app and puppet configs in master.
-          The app and puppet configs stay current if the instance should remain persistent rather than being re-deployed after every change
+      - The instance uses puppet to install and run VCSRepo, Nginx, Uwsgi, Git, VIM, and deploy our flask app(via Git) then creates a cron job
+          that runs puppet apply every hour enabling VCSRepo to update to the latest version of our flask app and puppet configs in master.
+          The app and puppet configs stay current if the instance should remain persistent rather than needing re-deployed after every change
           (Good for small team testing without a CI/CD framework)
+          
+      - Once a user is done, they can deconstruct their test instance via the launch.py script's '-term' flag.
+          (Instances are safe from accidental deletion via a user prompt unless overridden by the '-f' force flag)
 
      
      
       TODO:
      
       - Outside of the scope of this exercise more focus would be paid to security. (using virtualenv, key pairs, secret stores, identity checking, etc)
-      - The Launch script could be broken out into more functions and parts to allow more flexible changes.
+      - The Launch script could be broken out into more functions and parts to allow even more flexible changes.
       - Variables from launch.py could be broken out into an ini.
