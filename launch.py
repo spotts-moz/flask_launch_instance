@@ -260,59 +260,58 @@ def terminateInstance(term_instance_id):
                                             aws_secret_access_key = secret_access_key)            
         
         reservations = conn.get_all_reservations()
-        
         # Comb through all our reservations in the given region
         for r in reservations:
             for i in r.instances:
                 # Did we ask for an instance list? If the instances aren't terminated store it in a list
-                if args.listinstances and not i.state == "terminated":
-                    instance_id_list.append(i.id)
-
-                # We are only acting on instances matching the given instance_id if it is 'running' or 'stopped'                    
-                # (Already terminated instances don't require our attention)
-                if (i.id == term_instance_id) and (i.state == "running" or i.state == "stopped"):
+                if str(args.terminate).lower() == 'list' and not i.state == "terminated":
+                    instance_id_list.append(str(i.id + ' | ' + i.ip_address + ' | ' + i.launch_time))
+                else:
+                    # We are only acting on instances matching the given instance_id if it is 'running' or 'stopped'                    
+                    # (Already terminated instances don't require our attention)
+                    if (i.id == term_instance_id) and (i.state == "running" or i.state == "stopped"):
+                            
+                        # Setting our var so we get notice of its existence    
+                        found_instance_id = True
                         
-                    # Setting our var so we get notice of its existence    
-                    found_instance_id = True
-                    
-                    # Are we forcing deletion? Terminate
-                    if args.force:
-                        conn.terminate_instances(instance_ids=[term_instance_id])
-                        # Setting our var so we know the outcome
-                        delete_yes = True
-                    
-                    # We aren't forcing deletes? Ask the user permission
-                    elif not args.force:
-                        prompt_answer = userPrompt("\nAre you sure you want to terminate this instance?! ALL DATA WILL BE LOST FROM THAT INSTANCE!!!\n", ('y', 'n'))
-
-                        # Our user confirmed termination? Terminate
-                        if prompt_answer == 'y':
+                        # Are we forcing deletion? Terminate
+                        if args.force:
                             conn.terminate_instances(instance_ids=[term_instance_id])
                             # Setting our var so we know the outcome
                             delete_yes = True
-                            
-                        # Our user didn't confirm termination, move on    
-                        else:
-                            continue
-                
-                # If we found our instance but it's already terminated there's no need to act on it.
-                elif (i.id == term_instance_id) and i.state == "terminated":
-                    print "Instance %s is already terminated, nothing to act on" % term_instance_id
-                    sys.exit(0)
+                        
+                        # We aren't forcing deletes? Ask the user permission
+                        elif not args.force:
+                            prompt_answer = userPrompt("\nAre you sure you want to terminate this instance?! ALL DATA WILL BE LOST FROM THAT INSTANCE!!!\n", ('y', 'n'))
+    
+                            # Our user confirmed termination? Terminate
+                            if prompt_answer == 'y':
+                                conn.terminate_instances(instance_ids=[term_instance_id])
+                                # Setting our var so we know the outcome
+                                delete_yes = True
+                                
+                            # Our user didn't confirm termination, move on    
+                            else:
+                                continue
                     
-                else:
-                    continue
-        
-        # If we asked for a list of the instances, print it here.
-        if len(instance_id_list) > 0:
-            print "\nList of instances found:\n%s" % instance_id_list
-            
+                    # If we found our instance but it's already terminated there's no need to act on it.
+                    elif (i.id == term_instance_id) and i.state == "terminated":
+                        print "Instance %s is already terminated, nothing to act on" % term_instance_id
+                        sys.exit(0)
+                        
+                    else:
+                        continue
+                        
     except boto.exception.BotoServerError:
         print "Instance termination error - Check that regions, keys, and provided instance ids are correct."
         sys.exit(2)     
 
+    # If we asked for a list of the instances, print it here.
+    if len(instance_id_list) > 0:
+        print "\nList of instances found:\n Instance ID | IP Address | Launch Time\n%s" % '\n'.join('{}: {}'.format(*k) for k in enumerate(instance_id_list))
+        sys.exit(0)
     # If our instance id exists and we deleted it tell us
-    if found_instance_id and delete_yes:
+    elif found_instance_id and delete_yes:
         print "Matching instance was found and terminated"
         sys.exit(0)
     
@@ -339,11 +338,7 @@ if __name__=="__main__":
                         help="Forcing the command to run without user prompts",
                         action="store_true", default=False)
                         
-        # In case a user doesn't have access to the AWS console and lost the Instance ID for an instance they
-        #    want to terminate, they can use this in concert with '-term'. (A *valid* instance id is not necessary to see the list!)
-        parser.add_argument("-list", "--listinstances",
-                        help="Used in conjunction with '-term' to allow users to see what instance ids are available. (A valid instance id is not necessary for this)",
-                        action="store_true", default=False)                        
+               
                         
                         
         #  Breaking out the user data opens up this launch script to configure launched instances in multiple configurations.
@@ -384,7 +379,7 @@ if __name__=="__main__":
                         
         #  Setting up deconstruction. This is also available in the AWS console. (Please see AWS documentation)
         parser.add_argument("-term", "--terminate",
-                        help="When terminating, not creating an instance specify instance id, ie; 'i-00000000'",
+                        help="When terminating, not creating an instance specify instance id, ie; 'i-00000000'\n To retrieve a list of instance ids that can be terminated use -term list",
                         action="store")
 
                         
