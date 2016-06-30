@@ -67,6 +67,7 @@
           
       - Once a user is done, they can deconstruct their test instance via the launch.py script's '-term' flag.
           (Instances are safe from accidental deletion via a user prompt unless overridden by the '-f' force flag)
+          (to retrieve a list of instances that the user has access to terminate give the -term flag the value of list i.e. “launch.py -term list")
 
      
      
@@ -74,4 +75,5 @@
      
       - Outside of the scope of this exercise more focus would be paid to security. (using virtualenv, key pairs, secret stores, identity checking, etc)
       - The Launch script could be broken out into more functions and parts to allow even more flexible changes.
+      - Instance list functions could be broken out so for ease of use and possible reporting instances without needing to use the AWS console or cli directly .
       - Variables from launch.py could be broken out into an ini.
